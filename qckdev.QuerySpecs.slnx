@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="qckdev.QuerySpecs.Abstractions/qckdev.QuerySpecs.Abstractions.csproj" />
+  <Project Path="qckdev.QuerySpecs.Test/qckdev.QuerySpecs.Test.csproj" />
+  <Project Path="qckdev.QuerySpecs/qckdev.QuerySpecs.csproj" />
+</Solution>

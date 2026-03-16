@@ -5,50 +5,30 @@
 
 # qckdev.QuerySpecs
 
-`qckdev.QuerySpecs` standardizes query-spec workflows around two operations:
+Toolkit for query-spec contracts and execution flow across Application, Persistence, and Infrastructure layers.
 
-1. `Parse`: map an incoming request (`TSource`) to a specs contract (`TSpecs`).
-2. `Apply`: execute specs rules against a target (`TTarget`) through `IQuerySpecsProcessor<TSpecs, TTarget>`.
+## 📦 Packages
 
-When `Apply` is executed by `IQuerySpecsEngine`, the engine calls:
+This repository contains the following packable libraries:
 
-1. `processor.Validate(specs)`
-2. `processor.Apply(target, specs)`
+- `qckdev.QuerySpecs`: runtime engine + DI registration.
+- `qckdev.QuerySpecs.Abstractions`: contracts and shared query models.
 
-## Package layout
+## 🛠️ Installation
 
-This repository ships two NuGet packages:
-
-1. `qckdev.QuerySpecs.Abstractions`
-2. `qckdev.QuerySpecs`
-
-`qckdev.QuerySpecs` is the package most consumers should install. It includes:
-
-1. Runtime engine (`IQuerySpecsEngine` implementation)
-2. Dependency injection registration (`AddQuerySpecs`)
-3. A dependency on `qckdev.QuerySpecs.Abstractions`
-
-`qckdev.QuerySpecs.Abstractions` includes:
-
-1. Core contracts (`IQuerySpecsEngine`, `IQuerySpecsProcessor<,>`)
-2. Configuration contracts (`QuerySpecsConfiguration`, `QuerySpecsEngineOptions`)
-3. Optional collection contracts (`CollectionQuery`, `CollectionQuerySpecs`)
-
-## Installation
+Install the runtime package in applications:
 
 ```bash
 dotnet add package qckdev.QuerySpecs
 ```
 
-If you only need contracts in a shared domain/application boundary:
+Install only contracts when a project should not depend on the runtime engine:
 
 ```bash
 dotnet add package qckdev.QuerySpecs.Abstractions
 ```
 
-## Quick start
-
-### 1) Register QuerySpecs in DI
+## ⚡ Quick Start
 
 ```csharp
 using Microsoft.Extensions.DependencyInjection;
@@ -66,23 +46,21 @@ services.AddQuerySpecs(cfg =>
 });
 ```
 
-### 2) Parse in application handlers
-
 ```csharp
 var specs = querySpecsEngine.Parse<GetAllQuery, GetAllQuerySpecs>(request);
 ```
 
-### 3) Apply in persistence or infrastructure
-
 ```csharp
-// Persistence: shape IQueryable<TEntity>
 var query = querySpecsEngine.Apply<GetAllQuerySpecs, IQueryable<MyEntity>>(dbSet, specs);
-
-// Infrastructure: build URL path/query
 var path = querySpecsEngine.Apply<GetAllQuerySpecs, string>("/entities", specs);
 ```
 
-## Processor example
+## Processor Contract
+
+The engine executes processors in this order:
+
+1. `Validate(specs)`
+2. `Apply(target, specs)`
 
 ```csharp
 using qckdev.QuerySpecs;
@@ -106,26 +84,17 @@ internal sealed class GetAllQuerySpecsProcessor : IQuerySpecsProcessor<GetAllQue
 }
 ```
 
-## Guidance for developers
+## Recommended Implementation Sequence
 
-Recommended implementation sequence for list endpoints:
+1. Define input query (`GetAllQuery`).
+2. Define internal specs contract (`GetAllQuerySpecs`).
+3. Configure `cfg.Map` for input-to-specs conversion.
+4. Implement `IQuerySpecsProcessor<GetAllQuerySpecs, TTarget>`.
+5. Put specs validation in `Validate` and transformation in `Apply`.
+6. Use `Parse` in handlers and `Apply` in repositories/adapters.
 
-1. Define `GetAllQuery` (input contract)
-2. Define `GetAllQuerySpecs` (internal specs contract)
-3. Configure `cfg.Map` for query -> specs mapping
-4. Implement `IQuerySpecsProcessor<GetAllQuerySpecs, TTarget>` in the target layer
-5. Put specs validation in `Validate`
-6. Use `Parse` in handlers and `Apply` in repositories/adapters
+## 🤝 Contributing
+Issues and pull requests are welcome! See the contribution guidelines (coming soon).
 
-## Tests
-
-This repository includes unit tests for:
-
-1. Parse behavior (valid mapping and configuration errors)
-2. Apply behavior (processor resolution and execution)
-3. Assembly scanning through `AddQuerySpecs`
-4. Runtime overloads and parse-into-existing-instance behavior
-
-## License
-
-MIT
+## 📜 License
+This project is licensed under the terms of the [MIT License](LICENSE).

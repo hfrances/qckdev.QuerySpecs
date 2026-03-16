@@ -10,6 +10,11 @@
 1. `Parse`: map an incoming request (`TSource`) to a specs contract (`TSpecs`).
 2. `Apply`: execute specs rules against a target (`TTarget`) through `IQuerySpecsProcessor<TSpecs, TTarget>`.
 
+When `Apply` is executed by `IQuerySpecsEngine`, the engine calls:
+
+1. `processor.Validate(specs)`
+2. `processor.Apply(target, specs)`
+
 ## Package layout
 
 This repository ships two NuGet packages:
@@ -84,13 +89,16 @@ using qckdev.QuerySpecs;
 
 internal sealed class GetAllQuerySpecsProcessor : IQuerySpecsProcessor<GetAllQuerySpecs, string>
 {
-    public string Apply(string target, GetAllQuerySpecs specs)
+    public void Validate(GetAllQuerySpecs specs)
     {
         if (specs.Page.HasValue && specs.Page.Value <= 0)
         {
             throw new ArgumentException("Page must be greater than 0.", nameof(specs));
         }
+    }
 
+    public string Apply(string target, GetAllQuerySpecs specs)
+    {
         return specs.Page.HasValue
             ? $"{target}?page={specs.Page.Value}"
             : target;
@@ -106,7 +114,7 @@ Recommended implementation sequence for list endpoints:
 2. Define `GetAllQuerySpecs` (internal specs contract)
 3. Configure `cfg.Map` for query -> specs mapping
 4. Implement `IQuerySpecsProcessor<GetAllQuerySpecs, TTarget>` in the target layer
-5. Keep specs validation in `Apply`
+5. Put specs validation in `Validate`
 6. Use `Parse` in handlers and `Apply` in repositories/adapters
 
 ## Tests

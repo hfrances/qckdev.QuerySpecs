@@ -8,7 +8,13 @@ namespace qckdev.QuerySpecs
     public interface IQuerySpecsProcessor<in TSpecs, TTarget>
     {
         /// <summary>
-        /// Validates the provided specs and applies it over the target instance.
+        /// Validates the provided specs instance before applying it over the target.
+        /// </summary>
+        /// <param name="specs">Specs input instance.</param>
+        void Validate(TSpecs specs);
+
+        /// <summary>
+        /// Applies the validated specs over the target instance.
         /// </summary>
         /// <param name="target">Target object.</param>
         /// <param name="specs">Specs input instance.</param>

@@ -184,6 +184,47 @@ namespace qckdev.QuerySpecs.Test
         }
 
         [TestMethod]
+        public void Apply_CallsValidate_BeforeApply()
+        {
+            ValidateFirstProcessor.Reset();
+
+            using var sp = new ServiceCollection()
+                .AddQuerySpecs(config =>
+                {
+                    config.RegisterServicesFromAssemblyContaining<ValidateFirstProcessor>();
+                })
+                .BuildServiceProvider();
+
+            using var scope = sp.CreateScope();
+            var sut = scope.ServiceProvider.GetRequiredService<IQuerySpecsEngine>();
+
+            var result = sut.Apply<ValidateSpecs, int>(2, new ValidateSpecs { Amount = 3 });
+
+            Assert.AreEqual(5, result);
+            Assert.IsTrue(ValidateFirstProcessor.ValidateCalled);
+            Assert.IsTrue(ValidateFirstProcessor.ApplyCalled);
+        }
+
+        [TestMethod]
+        public void Apply_DoesNotCallApply_WhenValidateThrows()
+        {
+            ThrowOnValidateProcessor.Reset();
+
+            using var sp = new ServiceCollection()
+                .AddQuerySpecs(config =>
+                {
+                    config.RegisterServicesFromAssemblyContaining<ThrowOnValidateProcessor>();
+                })
+                .BuildServiceProvider();
+
+            using var scope = sp.CreateScope();
+            var sut = scope.ServiceProvider.GetRequiredService<IQuerySpecsEngine>();
+
+            Assert.ThrowsException<ArgumentException>(() => sut.Apply<ThrowSpecs, string>("target", new ThrowSpecs()));
+            Assert.IsFalse(ThrowOnValidateProcessor.ApplyCalled);
+        }
+
+        [TestMethod]
         public void AddQuerySpecs_RegistersProcessorForEachClosedContract()
         {
             using var sp = new ServiceCollection()
@@ -224,11 +265,81 @@ namespace qckdev.QuerySpecs.Test
 
         sealed class IncrementQuerySpecsProcessor : IQuerySpecsProcessor<int, int>
         {
+            public void Validate(int specs)
+            {
+            }
+
             public int Apply(int target, int specs) => target + specs;
+        }
+
+        sealed class ValidateSpecs
+        {
+            public int Amount { get; set; }
+        }
+
+        sealed class ValidateFirstProcessor : IQuerySpecsProcessor<ValidateSpecs, int>
+        {
+            public static bool ValidateCalled { get; private set; }
+            public static bool ApplyCalled { get; private set; }
+
+            public void Validate(ValidateSpecs specs)
+            {
+                ValidateCalled = true;
+            }
+
+            public int Apply(int target, ValidateSpecs specs)
+            {
+                ApplyCalled = true;
+                if (!ValidateCalled)
+                {
+                    throw new InvalidOperationException("Validate must run before Apply.");
+                }
+
+                return target + specs.Amount;
+            }
+
+            public static void Reset()
+            {
+                ValidateCalled = false;
+                ApplyCalled = false;
+            }
+        }
+
+        sealed class ThrowSpecs
+        {
+        }
+
+        sealed class ThrowOnValidateProcessor : IQuerySpecsProcessor<ThrowSpecs, string>
+        {
+            public static bool ApplyCalled { get; private set; }
+
+            public void Validate(ThrowSpecs specs)
+            {
+                throw new ArgumentException("Invalid specs.", nameof(specs));
+            }
+
+            public string Apply(string target, ThrowSpecs specs)
+            {
+                ApplyCalled = true;
+                return target;
+            }
+
+            public static void Reset()
+            {
+                ApplyCalled = false;
+            }
         }
 
         sealed class MultiProcessor : IQuerySpecsProcessor<int, int>, IQuerySpecsProcessor<string, string>
         {
+            void IQuerySpecsProcessor<int, int>.Validate(int specs)
+            {
+            }
+
+            void IQuerySpecsProcessor<string, string>.Validate(string specs)
+            {
+            }
+
             int IQuerySpecsProcessor<int, int>.Apply(int target, int specs) => target + specs;
             string IQuerySpecsProcessor<string, string>.Apply(string target, string specs) => target + specs;
         }

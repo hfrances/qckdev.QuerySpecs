@@ -98,6 +98,7 @@ namespace qckdev.QuerySpecs
         public TTarget Apply<TSpecs, TTarget>(TTarget target, TSpecs specs)
         {
             var processor = _serviceProvider.GetRequiredService<IQuerySpecsProcessor<TSpecs, TTarget>>();
+            processor.Validate(specs);
             return processor.Apply(target, specs);
         }
 

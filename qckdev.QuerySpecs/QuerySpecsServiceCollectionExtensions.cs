@@ -31,7 +31,10 @@ namespace qckdev.QuerySpecs
             Microsoft.Extensions.DependencyInjection.OptionsServiceCollectionExtensions
                 .Configure<QuerySpecsEngineOptions>(services, options =>
                 {
-                    options.Map = specsConfiguration.Map;
+                    if (specsConfiguration.Map != null)
+                    {
+                        options.Map = specsConfiguration.Map;
+                    }
                 });
 
             foreach (var assembly in specsConfiguration.AssembliesToRegister.Distinct())
